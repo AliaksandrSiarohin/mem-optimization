@@ -1,7 +1,6 @@
 import numpy as np
 import sys
 import os
-from skimage import color
 
 def generate_noise(shape):
     return np.random.standard_normal(shape)
