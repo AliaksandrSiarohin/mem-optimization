@@ -8,9 +8,9 @@ import lasagne.nonlinearities
 IMAGE_W = 227
 
 
-def define_net():
+def define_net(input_var):
     net = {}
-    net['data'] = InputLayer(shape=(None, 3, IMAGE_W, IMAGE_W))
+    net['data'] = InputLayer(shape=(None, 3, IMAGE_W, IMAGE_W), input_var=input_var)
 
     # conv1
     net['conv1'] = Conv2DLayer(
@@ -115,8 +115,8 @@ def define_net():
     return net
 
 
-def load_weights(net, file_name='mnist/memnet.npy'):
-    weights = np.load(file_name)
+def load_weights(net, file_name='memnet/memnet.npy'):
+    weights = np.load(file_name, encoding='latin1')
     lasagne.layers.set_all_param_values(net['out'], weights)
 
 

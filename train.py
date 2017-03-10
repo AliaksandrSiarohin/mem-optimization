@@ -10,16 +10,16 @@ import os
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--experiment", default = 'mnist',
-                        help = "Experiment name, the folder with all network definitions")
-    parser.add_argument("--num_iter", type = int, default = 50, help = "Number of iterations")
-    parser.add_argument("--batch_size", type = int, default = 32, help = 'Size of minibatch')
-    parser.add_argument("--obj_coef", default = 1.0, type = float, help = "Weight of objective loss")
-    parser.add_argument("--cont_coef", default = 3.0, type = float, help = "Weight of content loss")
-    parser.add_argument("--disc_coef", default = 0.1,  type = float, help = "Weight of discriminator")
-    parser.add_argument("--output_model", default = 'mnist/generator.npy', help = "Path to result generator")
-    parser.add_argument("--num_img_to_show", default=5, help = "Number of image to show")
-    parser.add_argument("--folder_with_plots", default='mnist/plots', help='Folder for saving plots in each iteration')
+    parser.add_argument("--experiment", default='memnet',
+                        help="Experiment name, the folder with all network definitions")
+    parser.add_argument("--num_iter", type=int, default=3, help="Number of iterations")
+    parser.add_argument("--batch_size", type=int, default=32, help='Size of minibatch')
+    parser.add_argument("--obj_coef", default=1.0, type=float, help="Weight of objective loss")
+    parser.add_argument("--cont_coef", default=3.0, type=float, help="Weight of content loss")
+    parser.add_argument("--disc_coef", default=0.1,  type=float, help="Weight of discriminator")
+    parser.add_argument("--output_model", default='memnet/generator.npy', help="Path to result generator")
+    parser.add_argument("--num_img_to_show", default=5, help="Number of image to show")
+    parser.add_argument("--folder_with_plots", default='memnet/plots', help='Folder for saving plots in each iteration')
 
     return parser.parse_args()
 
@@ -51,6 +51,11 @@ def compile(options):
 
     D_loss = -(T.log(D_true) + T.log(1 - D_generated)).mean()
 
+    D_params = lasagne.layers.get_all_params(D['out'], trainable=True)
+    D_updates = lasagne.updates.adam(D_loss, D_params, learning_rate=0.0005)
+    D_train_fn = theano.function([input_to_generator, input_to_disctiminator], D_loss, updates=D_updates,
+                                 allow_input_downcast=True)
+
     G_params = lasagne.layers.get_all_params(G['out'], trainable=True)
     G_updates = lasagne.updates.adam(G_loss, G_params, learning_rate=0.0005)
     G_train_fn = theano.function([input_to_generator, input_to_content],
@@ -58,10 +63,7 @@ def compile(options):
                                  allow_input_downcast=True)
     generate_fn = theano.function([input_to_generator], generated_img, allow_input_downcast=True)
 
-    D_params = lasagne.layers.get_all_params(D['out'], trainable=True)
-    D_updates = lasagne.updates.adam(D_loss, D_params, learning_rate=0.0005)
-    D_train_fn = theano.function([input_to_generator, input_to_disctiminator], D_loss, updates=D_updates,
-                                 allow_input_downcast=True)
+
 
     return G_train_fn, D_train_fn, generate_fn, G, D
 
@@ -78,9 +80,11 @@ def plot(options, epoch, images, generated_images):
         plt.subplot(len(images), 2, 2*i + 2)
         plt.axis('off')
         plt.imshow(generated_images[i])
+        print(generated_images[i])
     plt.savefig(os.path.join(options.folder_with_plots, str(epoch) + '.png'), bbox_inches='tight')
 
 def train(options):
+    print ("Compiling...")
     G_train_fn, D_train_fn, generate_fn, G, D = compile(options)
     import util
     print ("Loading dataset...")
@@ -122,6 +126,9 @@ def train(options):
 
 def main():
     options = parse_args()
+    plt.rcParams['image.cmap'] = 'gray'
+    if not os.path.exists(options.folder_with_plots):
+        os.mkdir(options.folder_with_plots)
     sys.path.insert(0, options.experiment)
     G = train(options)
     np.save(options.output_model, lasagne.layers.get_all_param_values(G['out']))

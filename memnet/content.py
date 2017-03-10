@@ -9,7 +9,7 @@ content_layer = 'conv4_1'
 
 def define_net():
     net = {}
-    net['input'] = InputLayer((1, 3, IMAGE_SHAPE[0], IMAGE_SHAPE[1]))
+    net['input'] = InputLayer((None, 3, IMAGE_SHAPE[0], IMAGE_SHAPE[1]))
     net['conv1_1'] = ConvLayer(net['input'], 64, 3, pad=1, flip_filters=False)
     net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1, flip_filters=False)
     net['pool1'] = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
@@ -34,7 +34,7 @@ def define_net():
 
     return net
 
-def load_weights(net, file_name='mnist/vgg19.pkl'):
+def load_weights(net, file_name='memnet/vgg19.pkl'):
     values = pickle.load(open(file_name, 'rb'), encoding = 'latin-1')['param values']
     lasagne.layers.set_all_param_values(net['pool5'], values)
 
