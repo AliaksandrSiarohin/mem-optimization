@@ -30,22 +30,33 @@ def define_net():
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_6']))
 
+
     net['unconv_1'] = ll.batch_norm(ll.TransposedConv2DLayer(net['conv_6'], num_filters=512, stride=(2, 2),
                                                 filter_size=(5, 5)))
     print(lasagne.layers.get_output_shape(net['unconv_1']))
-    net['unconv_2'] = ll.batch_norm(ll.TransposedConv2DLayer(net['unconv_1'], num_filters=512, stride=(2, 2),
+
+    concat = ll.ConcatLayer([net['unconv_1'], net['conv_5']], axis=1)
+    net['unconv_2'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=512, stride=(2, 2),
                                                 filter_size=(4, 4)))
     print(lasagne.layers.get_output_shape(net['unconv_2']))
-    net['unconv_3'] = ll.batch_norm(ll.TransposedConv2DLayer(net['unconv_2'], num_filters=256, stride=(2, 2),
+
+    concat = ll.ConcatLayer([net['unconv_2'], net['conv_4']], axis=1)
+    net['unconv_3'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=256, stride=(2, 2),
                                                 filter_size=(4, 4)))
     print(lasagne.layers.get_output_shape(net['unconv_3']))
-    net['unconv_4'] = ll.batch_norm(ll.TransposedConv2DLayer(net['unconv_3'], num_filters=128, stride=(2, 2),
+
+    concat = ll.ConcatLayer([net['unconv_3'], net['conv_3']], axis=1)
+    net['unconv_4'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=128, stride=(2, 2),
                                                 filter_size=(5, 5)))
     print(lasagne.layers.get_output_shape(net['unconv_4']))
-    net['unconv_5'] = ll.batch_norm(ll.TransposedConv2DLayer(net['unconv_4'], num_filters=64, stride=(2, 2),
+
+    concat = ll.ConcatLayer([net['unconv_4'], net['conv_2']], axis=1)
+    net['unconv_5'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=64, stride=(2, 2),
                                                 filter_size=(4, 4)))
     print(lasagne.layers.get_output_shape(net['unconv_5']))
-    net['unconv_6'] = ll.batch_norm(ll.TransposedConv2DLayer(net['unconv_5'], num_filters=3, stride=(2, 2),
+
+    concat = ll.ConcatLayer([net['unconv_5'], net['conv_1']], axis=1)
+    net['unconv_6'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=3, stride=(2, 2),
                                                 filter_size=(5, 5), nonlinearity=lasagne.nonlinearities.tanh))
 
     print(lasagne.layers.get_output_shape(net['unconv_6']))

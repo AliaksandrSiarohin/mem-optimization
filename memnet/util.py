@@ -39,11 +39,11 @@ def deprocess(img_batch):
     return img_batch[:,:,:,::-1].astype(np.uint8)
 
 
-def load_dataset(directory='datasets/nature-small'):
+def load_dataset(directory='datasets/nature'):
     X = []
     for name in os.listdir(directory):
         img = io.imread(os.path.join(directory, name))
-        if img.shape == 2:
+        if len(img.shape) == 2:
             img = color.gray2rgb(img)
         X.append(img_as_ubyte(transform.resize(img, (256, 256))))
 

@@ -19,7 +19,7 @@ def define_net(input_var):
 	return net
 
 def load_weights(net, file_name = 'mnist/mnist_nn.npy'):
-	weights = np.load(file_name)
+	weights = np.load(file_name, encoding='latin1')
 	lasagne.layers.set_all_param_values(net['out'], weights)
 
 def define_loss(input_img, digit = 3):
