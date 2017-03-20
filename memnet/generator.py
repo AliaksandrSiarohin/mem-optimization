@@ -7,7 +7,7 @@ def define_net():
     net = {}
 
     print ("Generator layer shapes:")
-    net['input'] = ll.InputLayer(shape=(None, 6, IMAGE_SHAPE[0], IMAGE_SHAPE[1]))
+    net['input'] = ll.InputLayer(shape=(None, 3, IMAGE_SHAPE[0], IMAGE_SHAPE[1]))
 
     leaky_relu = lasagne.nonlinearities.LeakyRectify(0.2)
 
@@ -56,11 +56,14 @@ def define_net():
     print(lasagne.layers.get_output_shape(net['unconv_5']))
 
     concat = ll.ConcatLayer([net['unconv_5'], net['conv_1']], axis=1)
-    net['unconv_6'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=3, stride=(2, 2),
-                                                filter_size=(5, 5), nonlinearity=lasagne.nonlinearities.tanh))
+    net['unconv_6'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=32, stride=(2, 2),
+                                                filter_size=(5, 5)))
 
     print(lasagne.layers.get_output_shape(net['unconv_6']))
-    net['out'] = ll.standardize(net['unconv_6'], offset=np.array([0, 0, 0], dtype='float32'),
+    net['pre_out'] = ll.batch_norm(ll.Conv2DLayer(net['unconv_6'], num_filters=3, filter_size=(3,3),
+                                                  nonlinearity=lasagne.nonlinearities.tanh, pad='same'))
+    print(lasagne.layers.get_output_shape(net['pre_out']))
+    net['out'] = ll.standardize(net['pre_out'], offset=np.array([0, 0, 0], dtype='float32'),
                                 scale=np.array([1/128.0, 1/128.0, 1/128.0], dtype='float32'))
 
     print(lasagne.layers.get_output_shape(net['out']))

@@ -115,13 +115,13 @@ def define_net(input_var):
     return net
 
 
-def load_weights(net, file_name='memnet/memnet.npy'):
+def load_weights(net, file_name):
     weights = np.load(file_name, encoding='latin1')
     lasagne.layers.set_all_param_values(net['out'], weights)
 
 
-def define_loss(input_img):
+def define_loss(input_img, file_name='memnet/external_mem.npy'):
     net = define_net(input_img)
-    load_weights(net)
+    load_weights(net, file_name)
     output = lasagne.layers.get_output(net['out'], deterministic=True)
     return -output[:, 0]

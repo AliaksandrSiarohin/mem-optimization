@@ -1,0 +1,3 @@
+batches : (64 x 64) 50
+Weights (1, 1, 10)
+lr : 1e-3 decrease every 20 epoch *0.5

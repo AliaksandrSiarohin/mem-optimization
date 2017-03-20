@@ -14,7 +14,7 @@ def generate_noise(shape):
 
 
 def add_noise(img_batch):
-    return np.concatenate([img_batch, generate_noise(img_batch.shape)], axis = 1)
+    return img_batch #np.concatenate([img_batch, generate_noise(img_batch.shape)], axis = 1)
 
 
 def preprocess(img_batch):
