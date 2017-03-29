@@ -5,7 +5,7 @@ import lasagne
 import pickle
 from util import IMAGE_SHAPE
 
-content_layer = 'conv4_1'
+content_layer = 'conv3_1'
 
 def define_net():
     net = {}

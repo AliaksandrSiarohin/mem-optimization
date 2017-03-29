@@ -32,7 +32,7 @@ def define_net():
 
 
     net['unconv_1'] = ll.batch_norm(ll.TransposedConv2DLayer(net['conv_6'], num_filters=512, stride=(2, 2),
-                                                filter_size=(5, 5)))
+                                                filter_size=(4, 4)))
     print(lasagne.layers.get_output_shape(net['unconv_1']))
 
     concat = ll.ConcatLayer([net['unconv_1'], net['conv_5']], axis=1)
@@ -47,17 +47,17 @@ def define_net():
 
     concat = ll.ConcatLayer([net['unconv_3'], net['conv_3']], axis=1)
     net['unconv_4'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=128, stride=(2, 2),
-                                                filter_size=(5, 5)))
+                                                filter_size=(4, 4)))
     print(lasagne.layers.get_output_shape(net['unconv_4']))
 
     concat = ll.ConcatLayer([net['unconv_4'], net['conv_2']], axis=1)
     net['unconv_5'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=64, stride=(2, 2),
-                                                filter_size=(4, 4)))
+                                                filter_size=(5, 5)))
     print(lasagne.layers.get_output_shape(net['unconv_5']))
 
     concat = ll.ConcatLayer([net['unconv_5'], net['conv_1']], axis=1)
     net['unconv_6'] = ll.batch_norm(ll.TransposedConv2DLayer(concat, num_filters=32, stride=(2, 2),
-                                                filter_size=(5, 5)))
+                                                filter_size=(4, 4)))
 
     print(lasagne.layers.get_output_shape(net['unconv_6']))
     net['pre_out'] = ll.batch_norm(ll.Conv2DLayer(net['unconv_6'], num_filters=3, filter_size=(3,3),

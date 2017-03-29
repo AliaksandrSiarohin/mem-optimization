@@ -4,7 +4,7 @@ from lasagne.layers import InputLayer, Conv2DLayer
 from lasagne.layers import MaxPool2DLayer, LocalResponseNormalization2DLayer
 from lasagne.layers import SliceLayer, concat, DenseLayer
 import lasagne.nonlinearities
-
+import sample_layer
 IMAGE_W = 227
 
 
@@ -12,9 +12,11 @@ def define_net(input_var):
     net = {}
     net['data'] = InputLayer(shape=(None, 3, IMAGE_W, IMAGE_W), input_var=input_var)
 
+    net['patch'] = sample_layer.Sample2DLayer(net['data'], 5, (227, 227))
+
     # conv1
     net['conv1'] = Conv2DLayer(
-        net['data'],
+        net['patch'],
         num_filters=96,
         filter_size=(11, 11),
         stride=4,

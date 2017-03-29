@@ -5,7 +5,7 @@ from skimage import io
 from skimage import transform
 from skimage import img_as_ubyte
 import warnings
-IMAGE_SHAPE = (227, 227)
+IMAGE_SHAPE = (256, 256)
 MEAN_VALUES = np.array([104.0, 117.0, 123.0]).reshape((3,1,1))
 warnings.filterwarnings("ignore")
 
@@ -23,9 +23,9 @@ def preprocess(img_batch):
 
     for i in range(num_images):
         img = img_batch[i]
-        shift = (np.random.randint(0, img.shape[0] - IMAGE_SHAPE[0]),
-                 np.random.randint(0, img.shape[1] - IMAGE_SHAPE[1]))
-        img = img[shift[0]:(shift[0] + IMAGE_SHAPE[0]), shift[1]:(shift[1] + IMAGE_SHAPE[1])]
+        # shift = (np.random.randint(0, img.shape[0] - IMAGE_SHAPE[0]),
+        #          np.random.randint(0, img.shape[1] - IMAGE_SHAPE[1]))
+        # img = img[shift[0]:(shift[0] + IMAGE_SHAPE[0]), shift[1]:(shift[1] + IMAGE_SHAPE[1])]
         img = np.moveaxis(img, -1, 0)
         img = img[::-1, :, :] - MEAN_VALUES
         new_img_batch[i] = img

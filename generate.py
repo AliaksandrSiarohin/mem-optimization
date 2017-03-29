@@ -14,10 +14,12 @@ def parse_args():
 
     parser.add_argument("--experiment", default = 'memnet',
                         help = "Experiment name, the folder with all network definitions")
-    parser.add_argument("--input_folder", default='datasets/nature', help="Input images")
-    parser.add_argument("--output_folder", default='output-2', help='Output images')
-    parser.add_argument("--model", default='memnet/generator-2.npy', help="Path to generator weights")
+    parser.add_argument("--input_folder", default='datasets/nature-test',
+                        help="Input images")
+    parser.add_argument("--output_folder", default='output-11-test', help='Output images')
+    parser.add_argument("--model", default='memnet/experiment-11/model/generator-50.npy', help="Path to generator weights")
     parser.add_argument("--objective_model", default='memnet/internal_mem.npy', help='Path to objective model weights')
+    parser.add_argument("--device", default='gpu0', help='Which device to use')
 
     return parser.parse_args()
 
@@ -34,13 +36,16 @@ def compile(options):
     lasagne.layers.set_all_param_values(G['out'], np.load(options.model))
 
     input_image = T.tensor4('input_img', dtype='float32')
-    objective_fn = theano.function([input_image], -objective.define_loss(input_image, options.objective_model))
+    objective_fn = theano.function([input_image], -objective.define_loss(input_image, options.objective_model).mean())
 
     return generate_fn, objective_fn
 
 
 def main():
     options = parse_args()
+    import theano.sandbox.cuda
+    theano.sandbox.cuda.use(options.device)
+
     plt.rcParams['image.cmap'] = 'gray'
     if not os.path.exists(options.output_folder):
         os.mkdir(options.output_folder)

@@ -2,8 +2,8 @@ import lasagne
 import lasagne.layers as ll
 from util import IMAGE_SHAPE
 import sample_layer
-
-# def define_net():
+#
+# def define_full_net():
 #     net = {}
 #     print ("Discriminator layer shapes:")
 #     net['input'] = ll.InputLayer(shape=(None, 3, IMAGE_SHAPE[0], IMAGE_SHAPE[1]))
@@ -35,11 +35,11 @@ import sample_layer
 #     return net
 
 
-def define_net():
+def define_patch_net():
     net = {}
     print ("Discriminator layer shapes:")
     net['input'] = ll.InputLayer(shape=(None, 3, IMAGE_SHAPE[0], IMAGE_SHAPE[1]))
-    net['patch'] = sample_layer.Sample2DLayer(net['input'], 50, (64, 64))
+    net['patch'] = sample_layer.Sample2DLayer(net['input'], 50, (32, 32))
     leaky_relu = lasagne.nonlinearities.LeakyRectify(0.2)
 
     net['conv_1'] = ll.Conv2DLayer(net['patch'], num_filters=16, filter_size=(4, 4),
@@ -57,8 +57,19 @@ def define_net():
     net['conv_5'] = ll.batch_norm(ll.Conv2DLayer(net['conv_4'], num_filters=256, filter_size=(4, 4),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_5']))
+
+    # net['conv_6'] = ll.batch_norm(ll.Conv2DLayer(net['conv_5'], num_filters=512, filter_size=(4, 4), stride = (2, 2),
+    #                                              nonlinearity=leaky_relu))
+    # print(lasagne.layers.get_output_shape(net['conv_6']))
+
     net['out'] = ll.DenseLayer(net['conv_5'], num_units=1, nonlinearity=lasagne.nonlinearities.sigmoid)
 
     print(lasagne.layers.get_output_shape(net['out']))
 
     return net
+#
+# patch_net = define_patch_net()
+# full_net = define_full_net()
+#
+# def define_loss_generator(generated_img):
+

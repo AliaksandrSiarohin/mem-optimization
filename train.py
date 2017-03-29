@@ -14,20 +14,23 @@ def parse_args():
 
     parser.add_argument("--experiment", default='memnet',
                         help="Experiment name, the folder with all network definitions")
-    parser.add_argument("--num_iter", type=int, default=100, help="Number of iterations")
+    parser.add_argument("--num_iter", type=int, default=60, help="Number of iterations")
     parser.add_argument("--batch_size", type=int, default=4, help='Size of minibatch')
-    parser.add_argument("--obj_coef", default=1.0, type=float, help="Weight of objective loss")
+    parser.add_argument("--obj_coef", default=1, type=float, help="Weight of objective loss")
     parser.add_argument("--cont_coef", default=1.0, type=float, help="Weight of content loss")
     parser.add_argument("--disc_coef", default=10.0,  type=float, help="Weight of discriminator")
+    parser.add_argument("--tv_coef", default=0.3 * 1e-4, type=float, help="Weight of total variation")
     parser.add_argument("--num_img_to_show", default=5, help="Number of image to show")
-    parser.add_argument("--experiment_folder", default='memnet/experiment',
+    parser.add_argument("--experiment_folder", default='memnet/experiment-12',
                         help='Folder for saving plots and netowkrs in each iteration')
-    parser.add_argument("--log_file", default='memnet/plots-6/log.txt', help='Log file')
-    parser.add_argument("--save_mode_it", default=1, help='Save model per this number of epoch')
+    parser.add_argument("--save_mode_it", default=10, help='Save model per this number of epoch')
     parser.add_argument("--device", default='gpu0', help='Which device to use')
 
     return parser.parse_args()
 
+
+def total_variation_loss(x):
+    return (((x[:,:,:-1,:-1] - x[:,:,1:,:-1])**2 + (x[:,:,:-1,:-1] - x[:,:,:-1,1:])**2)**1.25).mean()
 
 def compile(options):
     import content
@@ -51,10 +54,12 @@ def compile(options):
     objective_loss = options.obj_coef * objective.define_loss(generated_img).mean()
     content_loss = options.cont_coef * content.define_loss(input_to_content, generated_img).mean()
     disc_loss = -options.disc_coef * T.log(D_generated).mean()
+    tv_loss = options.tv_coef * total_variation_loss(generated_img)
 
     G_loss = (objective_loss +
               content_loss +
-              disc_loss)
+              disc_loss +
+              tv_loss)
 
     true_loss = -T.log(D_true).mean()
     generated_loss = -T.log(1 - D_generated).mean()
@@ -69,7 +74,7 @@ def compile(options):
     G_params = lasagne.layers.get_all_params(G['out'], trainable=True)
     G_updates = lasagne.updates.adam(G_loss, G_params, learning_rate=lr)
     G_train_fn = theano.function([input_to_generator, input_to_content],
-                                 [G_loss, objective_loss, content_loss, disc_loss], updates=G_updates,
+                                 [G_loss, objective_loss, content_loss, disc_loss, tv_loss], updates=G_updates,
                                  allow_input_downcast=True)
     generate_fn = theano.function([input_to_generator], generated_img, allow_input_downcast=True)
     return G_train_fn, D_train_fn, generate_fn, G, D, lr
@@ -104,10 +109,10 @@ def train(options):
     print ("Loading dataset...")
     X = util.load_dataset()
     print ("Training...")
-    log_file = open(options.log_file, 'w')
+    log_file = open(os.path.join(options.experiment_folder, 'log.txt'), 'w')
     for epoch in range(options.num_iter):
-        if (epoch + 1) % 10 == 0:
-            lr *= 0.25
+        if (epoch + 1) % 30 == 0:
+            lr *= 0.1
 
         discriminator_order = np.arange(len(X))
         generator_order = np.arange(len(X))
@@ -138,7 +143,7 @@ def train(options):
         log_str = (("Epoch %i" % epoch) + '\n'
                     + ("Discriminator loss %f, true_loss %f, generated_loss %f" %
                             tuple(np.mean(np.array(discriminator_loss_list), axis=0))) + '\n'
-                    + ("Generator loss %f, obj_loss %f, cont_loss %f, disc_loss %f" %
+                    + ("Generator loss %f, obj_loss %f, cont_loss %f, disc_loss %f, total_variation loss %f" %
                             tuple(np.mean(np.array(generator_loss_list), axis=0)))
                    )
         print(log_str)
