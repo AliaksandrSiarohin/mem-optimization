@@ -40,20 +40,15 @@ def compile(options):
 
     input_to_generator = T.tensor4('img_with_noise', dtype='float32')
     input_to_content = T.tensor4('input_img', dtype='float32')
-    input_to_disctiminator = T.tensor4('true_img', dtype='float32')
+    input_to_discriminator = T.tensor4('true_img', dtype='float32')
     lr = theano.shared(np.array(0.001, dtype='float32'))
 
     G = generator.define_net()
     generated_img = lasagne.layers.get_output(G['out'], inputs=input_to_generator)
 
-
-    D = discriminator.define_net()
-    D_true = lasagne.layers.get_output(D['out'], inputs = input_to_disctiminator)
-    D_generated = lasagne.layers.get_output(D['out'], inputs = generated_img)
-
     objective_loss = options.obj_coef * objective.define_loss(generated_img).mean()
     content_loss = options.cont_coef * content.define_loss(input_to_content, generated_img).mean()
-    disc_loss = -options.disc_coef * T.log(D_generated).mean()
+    disc_loss = options.disc_coef * discriminator.define_loss_generator(generated_img).mean()
     tv_loss = options.tv_coef * total_variation_loss(generated_img)
 
     G_loss = (objective_loss +
@@ -61,14 +56,13 @@ def compile(options):
               disc_loss +
               tv_loss)
 
-    true_loss = -T.log(D_true).mean()
-    generated_loss = -T.log(1 - D_generated).mean()
 
-    D_loss = true_loss + generated_loss
-
-    D_params = lasagne.layers.get_all_params(D['out'], trainable=True)
+    D_params = discriminator.discriminator_params()
+    patch_loss = discriminator.single_discriminator_loss(discriminator.patch_net, generated_img, input_to_discriminator)
+    full_loss = discriminator.single_discriminator_loss(discriminator.full_net, generated_img, input_to_discriminator)
+    D_loss = patch_loss + full_loss
     D_updates = lasagne.updates.adam(D_loss, D_params, learning_rate=lr)
-    D_train_fn = theano.function([input_to_generator, input_to_disctiminator], [D_loss, true_loss, generated_loss],
+    D_train_fn = theano.function([input_to_generator, input_to_discriminator], [D_loss, patch_loss, full_loss],
                                  updates=D_updates, allow_input_downcast=True)
 
     G_params = lasagne.layers.get_all_params(G['out'], trainable=True)
@@ -77,7 +71,7 @@ def compile(options):
                                  [G_loss, objective_loss, content_loss, disc_loss, tv_loss], updates=G_updates,
                                  allow_input_downcast=True)
     generate_fn = theano.function([input_to_generator], generated_img, allow_input_downcast=True)
-    return G_train_fn, D_train_fn, generate_fn, G, D, lr
+    return G_train_fn, D_train_fn, generate_fn, G, lr
 
 
 def plot(options, epoch, images, generated_images):
@@ -95,16 +89,16 @@ def plot(options, epoch, images, generated_images):
     plt.savefig(os.path.join(options.experiment_folder, 'plots', str(epoch) + '.png'), bbox_inches='tight')
 
 
-def save_model(options, epoch, G, D):
+def save_model(options, epoch, G):
     np.save(os.path.join(options.experiment_folder, 'model', 'generator-' + str(epoch) + '.npy'),
                 lasagne.layers.get_all_param_values(G['out']))
-    np.save(os.path.join(options.experiment_folder, 'model', 'discriminator-' + str(epoch) + '.npy'),
-                lasagne.layers.get_all_param_values(D['out']))
+    # np.save(os.path.join(options.experiment_folder, 'model', 'discriminator-' + str(epoch) + '.npy'),
+    #             lasagne.layers.get_all_param_values(D['out']))
 
 
 def train(options):
     print ("Compiling...")
-    G_train_fn, D_train_fn, generate_fn, G, D, lr = compile(options)
+    G_train_fn, D_train_fn, generate_fn, G, lr = compile(options)
     import util
     print ("Loading dataset...")
     X = util.load_dataset()
@@ -141,7 +135,7 @@ def train(options):
         plot(options, epoch, img_for_ploting, generate_fn(util.add_noise(img_for_ploting)))
 
         log_str = (("Epoch %i" % epoch) + '\n'
-                    + ("Discriminator loss %f, true_loss %f, generated_loss %f" %
+                    + ("Discriminator loss %f, patch_loss %f, full_loss %f" %
                             tuple(np.mean(np.array(discriminator_loss_list), axis=0))) + '\n'
                     + ("Generator loss %f, obj_loss %f, cont_loss %f, disc_loss %f, total_variation loss %f" %
                             tuple(np.mean(np.array(generator_loss_list), axis=0)))
@@ -149,7 +143,7 @@ def train(options):
         print(log_str)
         print(log_str, file=log_file)
         if epoch % options.save_mode_it == 0:
-            save_model(options, epoch, G, D)
+            save_model(options, epoch, G)
         log_file.flush()
 
     log_file.close()

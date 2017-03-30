@@ -16,10 +16,10 @@ def parse_args():
                         help = "Experiment name, the folder with all network definitions")
     parser.add_argument("--input_folder", default='datasets/nature-test',
                         help="Input images")
-    parser.add_argument("--output_folder", default='output-11-test', help='Output images')
-    parser.add_argument("--model", default='memnet/experiment-11/model/generator-50.npy', help="Path to generator weights")
+    parser.add_argument("--output_folder", default='output-14-test', help='Output images')
+    parser.add_argument("--model", default='memnet/experiment-14/model/generator-10.npy', help="Path to generator weights")
     parser.add_argument("--objective_model", default='memnet/internal_mem.npy', help='Path to objective model weights')
-    parser.add_argument("--device", default='gpu0', help='Which device to use')
+    parser.add_argument("--device", default='cpu', help='Which device to use')
 
     return parser.parse_args()
 
@@ -31,7 +31,7 @@ def compile(options):
     input_to_generator = T.tensor4('img_with_noise', dtype='float32')
 
     G = generator.define_net()
-    generated_img = lasagne.layers.get_output(G['out'], inputs=input_to_generator)
+    generated_img = lasagne.layers.get_output(G['out'], inputs=input_to_generator, determenistic = True)
     generate_fn = theano.function([input_to_generator], generated_img, allow_input_downcast=True)
     lasagne.layers.set_all_param_values(G['out'], np.load(options.model))
 
