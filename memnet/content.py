@@ -38,10 +38,17 @@ def load_weights(net, file_name='memnet/vgg19.pkl'):
     values = pickle.load(open(file_name, 'rb'), encoding = 'latin-1')['param values']
     lasagne.layers.set_all_param_values(net['pool5'], values)
 
+
+def rgb2gray(img):
+    return 0.114 * img[:, 0] + 0.587 * img[:, 1] + 0.299 * img[:, 2]
+
 def define_loss(start_img, final_img):
-	net = define_net()
-	load_weights(net)
-	start_features = lasagne.layers.get_output(net[content_layer], start_img)
-	final_features = lasagne.layers.get_output(net[content_layer], final_img)
-	loss = ((start_features - final_features) ** 2).mean(axis = (1, 2, 3))
-	return loss
+    # net = define_net()
+    # load_weights(net)
+    # start_features = lasagne.layers.get_output(net[content_layer], start_img)
+    # final_features = lasagne.layers.get_output(net[content_layer], final_img)
+    # loss = ((start_features - final_features) ** 2).mean(axis = (1, 2, 3))
+
+    loss = ((rgb2gray(start_img) - rgb2gray(final_img)) ** 2).mean(axis = (1, 2))
+
+    return loss #+ loss_pixel * 0.5 * 1e-2

@@ -19,12 +19,13 @@ def parse_args():
     parser.add_argument("--obj_coef", default=1, type=float, help="Weight of objective loss")
     parser.add_argument("--cont_coef", default=1.0, type=float, help="Weight of content loss")
     parser.add_argument("--disc_coef", default=10.0,  type=float, help="Weight of discriminator")
-    parser.add_argument("--tv_coef", default=0.3 * 1e-4, type=float, help="Weight of total variation")
+    parser.add_argument("--tv_coef", default=0.3 * 1e-5, type=float, help="Weight of total variation")
     parser.add_argument("--num_img_to_show", default=5, help="Number of image to show")
-    parser.add_argument("--experiment_folder", default='memnet/experiment-12',
+    parser.add_argument("--experiment_folder", default='memnet/experiment-21',
                         help='Folder for saving plots and netowkrs in each iteration')
-    parser.add_argument("--save_mode_it", default=10, help='Save model per this number of epoch')
+    parser.add_argument("--save_mode_it", default=1, help='Save model per this number of epoch')
     parser.add_argument("--device", default='gpu0', help='Which device to use')
+    parser.add_argument("--dataset", default='datasets/flowers', help='Folder with images for training')
 
     return parser.parse_args()
 
@@ -42,11 +43,12 @@ def compile(options):
     input_to_content = T.tensor4('input_img', dtype='float32')
     input_to_discriminator = T.tensor4('true_img', dtype='float32')
     lr = theano.shared(np.array(0.001, dtype='float32'))
+    obj_coef = theano.shared(np.array(options.obj_coef, dtype='float32'))
 
     G = generator.define_net()
     generated_img = lasagne.layers.get_output(G['out'], inputs=input_to_generator)
 
-    objective_loss = options.obj_coef * objective.define_loss(generated_img).mean()
+    objective_loss = obj_coef * objective.define_loss(generated_img).mean()
     content_loss = options.cont_coef * content.define_loss(input_to_content, generated_img).mean()
     disc_loss = options.disc_coef * discriminator.define_loss_generator(generated_img).mean()
     tv_loss = options.tv_coef * total_variation_loss(generated_img)
@@ -71,7 +73,7 @@ def compile(options):
                                  [G_loss, objective_loss, content_loss, disc_loss, tv_loss], updates=G_updates,
                                  allow_input_downcast=True)
     generate_fn = theano.function([input_to_generator], generated_img, allow_input_downcast=True)
-    return G_train_fn, D_train_fn, generate_fn, G, lr
+    return G_train_fn, D_train_fn, generate_fn, G, lr, obj_coef
 
 
 def plot(options, epoch, images, generated_images):
@@ -98,15 +100,18 @@ def save_model(options, epoch, G):
 
 def train(options):
     print ("Compiling...")
-    G_train_fn, D_train_fn, generate_fn, G, lr = compile(options)
+    G_train_fn, D_train_fn, generate_fn, G, lr, obj_coef = compile(options)
     import util
     print ("Loading dataset...")
-    X = util.load_dataset()
+    X = util.load_dataset(options.dataset, True)
     print ("Training...")
     log_file = open(os.path.join(options.experiment_folder, 'log.txt'), 'w')
     for epoch in range(options.num_iter):
-        if (epoch + 1) % 30 == 0:
-            lr *= 0.1
+        if (epoch + 1) % 20 == 0:
+            lr.set_value(np.array(lr.get_value() * 0.1, dtype='float32'))
+
+        # if (epoch + 1) % 3 == 0:
+        #     obj_coef.set_value(np.array(obj_coef.get_value() + 0.1 * options.obj_coef, dtype='float32'))
 
         discriminator_order = np.arange(len(X))
         generator_order = np.arange(len(X))
@@ -147,7 +152,7 @@ def train(options):
         log_file.flush()
 
     log_file.close()
-    save_model(options, options.num_iter - 1, G, D)
+    save_model(options, options.num_iter - 1, G)
 
     return G
 

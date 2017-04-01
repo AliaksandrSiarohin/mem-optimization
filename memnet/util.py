@@ -5,6 +5,7 @@ from skimage import io
 from skimage import transform
 from skimage import img_as_ubyte
 import warnings
+from sklearn.model_selection import train_test_split
 IMAGE_SHAPE = (256, 256)
 MEAN_VALUES = np.array([104.0, 117.0, 123.0]).reshape((3,1,1))
 warnings.filterwarnings("ignore")
@@ -39,13 +40,13 @@ def deprocess(img_batch):
     return img_batch[:,:,:,::-1].astype(np.uint8)
 
 
-def load_dataset(directory='datasets/nature'):
+def load_dataset(directory='datasets/flowers', is_train=True):
     X = []
     for name in os.listdir(directory):
         img = io.imread(os.path.join(directory, name))
         if len(img.shape) == 2:
             img = color.gray2rgb(img)
         X.append(img_as_ubyte(transform.resize(img, (256, 256))))
-
-    return np.array(X)
+    X_train, X_test = train_test_split(X, train_size=0.8, random_state=0)
+    return np.array(X_train) if is_train else np.array(X_test)
 
