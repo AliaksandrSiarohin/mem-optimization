@@ -2,6 +2,14 @@ import lasagne.layers as ll
 import lasagne
 from util import IMAGE_SHAPE
 import numpy as np
+#
+# from lasagne.layers.dnn import Conv2DDNNLayer as Conv2DLayer
+# from lasagne.layers.dnn import batch_norm_dnn as batch_norm
+
+
+from lasagne.layers import Conv2DLayer
+from lasagne.layers import batch_norm
+
 
 def define_net():
     net = {}
@@ -11,22 +19,22 @@ def define_net():
 
     leaky_relu = lasagne.nonlinearities.LeakyRectify(0.2)
 
-    net['conv_1'] = ll.Conv2DLayer(net['input'], num_filters=64, stride=(2, 2), filter_size=(4, 4),
+    net['conv_1'] = Conv2DLayer(net['input'], num_filters=64, stride=(2, 2), filter_size=(4, 4),
                                                  nonlinearity=leaky_relu)
     print(lasagne.layers.get_output_shape(net['conv_1']))
-    net['conv_2'] = ll.batch_norm(ll.Conv2DLayer(net['conv_1'], num_filters=128, stride=(2, 2), filter_size=(4, 4),
+    net['conv_2'] = batch_norm(Conv2DLayer(net['conv_1'], num_filters=128, stride=(2, 2), filter_size=(4, 4),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_2']))
-    net['conv_3'] = ll.batch_norm(ll.Conv2DLayer(net['conv_2'], num_filters=256, stride=(2, 2), filter_size=(4, 4),
+    net['conv_3'] = batch_norm(Conv2DLayer(net['conv_2'], num_filters=256, stride=(2, 2), filter_size=(4, 4),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_3']))
-    net['conv_4'] = ll.batch_norm(ll.Conv2DLayer(net['conv_3'], num_filters=512, stride=(2, 2), filter_size=(4, 4),
+    net['conv_4'] = batch_norm(Conv2DLayer(net['conv_3'], num_filters=512, stride=(2, 2), filter_size=(4, 4),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_4']))
-    net['conv_5'] = ll.batch_norm(ll.Conv2DLayer(net['conv_4'], num_filters=512, stride=(2, 2), filter_size=(4, 4),
+    net['conv_5'] = batch_norm(Conv2DLayer(net['conv_4'], num_filters=512, stride=(2, 2), filter_size=(4, 4),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_5']))
-    net['conv_6'] = ll.batch_norm(ll.Conv2DLayer(net['conv_5'], num_filters=512, stride=(2, 2), filter_size=(4, 4),
+    net['conv_6'] = batch_norm(Conv2DLayer(net['conv_5'], num_filters=512, stride=(2, 2), filter_size=(4, 4),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_6']))
 
@@ -60,7 +68,7 @@ def define_net():
                                                 filter_size=(4, 4)))
 
     print(lasagne.layers.get_output_shape(net['unconv_6']))
-    net['pre_out'] = ll.batch_norm(ll.Conv2DLayer(net['unconv_6'], num_filters=3, filter_size=(3,3),
+    net['pre_out'] = batch_norm(Conv2DLayer(net['unconv_6'], num_filters=3, filter_size=(3,3),
                                                   nonlinearity=lasagne.nonlinearities.tanh, pad='same'))
     print(lasagne.layers.get_output_shape(net['pre_out']))
     net['out'] = ll.standardize(net['pre_out'], offset=np.array([0, 0, 0], dtype='float32'),

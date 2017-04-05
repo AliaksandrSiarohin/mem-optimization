@@ -18,7 +18,12 @@ def add_noise(img_batch):
     return img_batch #np.concatenate([img_batch, generate_noise(img_batch.shape)], axis = 1)
 
 
-def preprocess(img_batch):
+def colorize(image):
+    from skimage import img_as_ubyte, img_as_float
+    return img_as_ubyte(img_as_float(image) * np.random.uniform(0, 1, size=(1, 1, 3)))
+
+
+def preprocess(img_batch, for_discriminator=False):
     new_img_batch = np.empty((img_batch.shape[0], 3, IMAGE_SHAPE[0], IMAGE_SHAPE[1]), dtype=float)
     num_images = img_batch.shape[0]
 
@@ -27,6 +32,8 @@ def preprocess(img_batch):
         # shift = (np.random.randint(0, img.shape[0] - IMAGE_SHAPE[0]),
         #          np.random.randint(0, img.shape[1] - IMAGE_SHAPE[1]))
         # img = img[shift[0]:(shift[0] + IMAGE_SHAPE[0]), shift[1]:(shift[1] + IMAGE_SHAPE[1])]
+        if for_discriminator:
+            img = colorize(img)
         img = np.moveaxis(img, -1, 0)
         img = img[::-1, :, :] - MEAN_VALUES
         new_img_batch[i] = img
@@ -42,11 +49,12 @@ def deprocess(img_batch):
 
 def load_dataset(directory='datasets/flowers', is_train=True):
     X = []
-    for name in os.listdir(directory):
+    names = os.listdir(directory)
+    for name in names:
         img = io.imread(os.path.join(directory, name))
         if len(img.shape) == 2:
             img = color.gray2rgb(img)
         X.append(img_as_ubyte(transform.resize(img, (256, 256))))
-    X_train, X_test = train_test_split(X, train_size=0.8, random_state=0)
-    return np.array(X_train) if is_train else np.array(X_test)
+    X_train, X_test, names_train, names_test = train_test_split(X, names, train_size=0.8, random_state=0)
+    return (np.array(X_train), names_train) if is_train else (np.array(X_test), names_test)
 

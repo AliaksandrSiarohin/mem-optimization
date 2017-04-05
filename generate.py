@@ -14,10 +14,10 @@ def parse_args():
 
     parser.add_argument("--experiment", default = 'memnet',
                         help = "Experiment name, the folder with all network definitions")
-    parser.add_argument("--input_folder", default='datasets/nature-test',
+    parser.add_argument("--input_folder", default='datasets/flowers',
                         help="Input images")
-    parser.add_argument("--output_folder", default='output-17-test', help='Output images')
-    parser.add_argument("--model", default='memnet/experiment-17/model/generator-12.npy', help="Path to generator weights")
+    parser.add_argument("--output_folder", default='output-35-test-16', help='Output images')
+    parser.add_argument("--model", default='memnet/experiment-35/model/generator-16.npy', help="Path to generator weights")
     parser.add_argument("--objective_model", default='memnet/internal_mem.npy', help='Path to objective model weights')
     parser.add_argument("--device", default='cpu', help='Which device to use')
 
@@ -52,8 +52,7 @@ def main():
     sys.path.insert(0, options.experiment)
     generate_fn, objective_fn = compile(options)
     import util
-    X = util.load_dataset(options.input_folder)
-    ids = os.listdir(options.input_folder)
+    X, ids = util.load_dataset(options.input_folder, False)
     mem_file = open(os.path.join(options.output_folder, 'mem.csv'), 'w')
     print ("id,from,to", file = mem_file)
     for id, img in zip(ids, X):

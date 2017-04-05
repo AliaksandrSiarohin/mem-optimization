@@ -12,7 +12,7 @@ def define_net(input_var):
     net = {}
     net['data'] = InputLayer(shape=(None, 3, IMAGE_W, IMAGE_W), input_var=input_var)
 
-    net['patch'] = sample_layer.Sample2DLayer(net['data'], 5, (227, 227))
+    net['patch'] = sample_layer.Sample2DLayer(net['data'], 5, (227, 227), pad=False)
 
     # conv1
     net['conv1'] = Conv2DLayer(

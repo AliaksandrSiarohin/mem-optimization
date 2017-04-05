@@ -8,6 +8,8 @@ import sys
 import numpy as np
 import pylab as plt
 import os
+from tqdm import tqdm
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -21,17 +23,20 @@ def parse_args():
     parser.add_argument("--disc_coef", default=10.0,  type=float, help="Weight of discriminator")
     parser.add_argument("--tv_coef", default=0.3 * 1e-5, type=float, help="Weight of total variation")
     parser.add_argument("--num_img_to_show", default=5, help="Number of image to show")
-    parser.add_argument("--experiment_folder", default='memnet/experiment-21',
+    parser.add_argument("--experiment_folder", default='memnet/experiment-26',
                         help='Folder for saving plots and netowkrs in each iteration')
     parser.add_argument("--save_mode_it", default=1, help='Save model per this number of epoch')
     parser.add_argument("--device", default='gpu0', help='Which device to use')
     parser.add_argument("--dataset", default='datasets/flowers', help='Folder with images for training')
+    parser.add_argument("--cont_layer", default="conv3_1",
+                        help='Take content features from this layer (input) for pixels')
 
     return parser.parse_args()
 
 
 def total_variation_loss(x):
     return (((x[:,:,:-1,:-1] - x[:,:,1:,:-1])**2 + (x[:,:,:-1,:-1] - x[:,:,:-1,1:])**2)**1.25).mean()
+
 
 def compile(options):
     import content
@@ -49,7 +54,7 @@ def compile(options):
     generated_img = lasagne.layers.get_output(G['out'], inputs=input_to_generator)
 
     objective_loss = obj_coef * objective.define_loss(generated_img).mean()
-    content_loss = options.cont_coef * content.define_loss(input_to_content, generated_img).mean()
+    content_loss = options.cont_coef * content.define_loss(input_to_content, generated_img, options.cont_layer).mean()
     disc_loss = options.disc_coef * discriminator.define_loss_generator(generated_img).mean()
     tv_loss = options.tv_coef * total_variation_loss(generated_img)
 
@@ -61,10 +66,10 @@ def compile(options):
 
     D_params = discriminator.discriminator_params()
     patch_loss = discriminator.single_discriminator_loss(discriminator.patch_net, generated_img, input_to_discriminator)
-    full_loss = discriminator.single_discriminator_loss(discriminator.full_net, generated_img, input_to_discriminator)
-    D_loss = patch_loss + full_loss
+    full_loss = 0# discriminator.single_discriminator_loss(discriminator.full_net, generated_img, input_to_discriminator)
+    D_loss = patch_loss# + full_loss
     D_updates = lasagne.updates.adam(D_loss, D_params, learning_rate=lr)
-    D_train_fn = theano.function([input_to_generator, input_to_discriminator], [D_loss, patch_loss, full_loss],
+    D_train_fn = theano.function([input_to_generator, input_to_discriminator], [D_loss],
                                  updates=D_updates, allow_input_downcast=True)
 
     G_params = lasagne.layers.get_all_params(G['out'], trainable=True)
@@ -103,12 +108,12 @@ def train(options):
     G_train_fn, D_train_fn, generate_fn, G, lr, obj_coef = compile(options)
     import util
     print ("Loading dataset...")
-    X = util.load_dataset(options.dataset, True)
+    X, _ = util.load_dataset(options.dataset, True)
     print ("Training...")
     log_file = open(os.path.join(options.experiment_folder, 'log.txt'), 'w')
     for epoch in range(options.num_iter):
         if (epoch + 1) % 20 == 0:
-            lr.set_value(np.array(lr.get_value() * 0.1, dtype='float32'))
+            lr.set_value(np.array(lr.get_value() * 0.3, dtype='float32'))
 
         # if (epoch + 1) % 3 == 0:
         #     obj_coef.set_value(np.array(obj_coef.get_value() + 0.1 * options.obj_coef, dtype='float32'))
@@ -121,11 +126,11 @@ def train(options):
         discriminator_loss_list = []
         generator_loss_list = []
 
-        for start in range(0, len(X), options.batch_size):
+        for start in tqdm(range(0, len(X), options.batch_size)):
             end = min(start + options.batch_size, len(X))
 
             generator_batch = util.preprocess(X[generator_order[start:end]])
-            discriminator_batch = util.preprocess(X[discriminator_order[start:end]])
+            discriminator_batch = util.preprocess(X[discriminator_order[start:end]], True)
 
             generator_batch_with_noise = util.add_noise(generator_batch)
 
@@ -140,7 +145,7 @@ def train(options):
         plot(options, epoch, img_for_ploting, generate_fn(util.add_noise(img_for_ploting)))
 
         log_str = (("Epoch %i" % epoch) + '\n'
-                    + ("Discriminator loss %f, patch_loss %f, full_loss %f" %
+                    + ("Discriminator loss %f" %
                             tuple(np.mean(np.array(discriminator_loss_list), axis=0))) + '\n'
                     + ("Generator loss %f, obj_loss %f, cont_loss %f, disc_loss %f, total_variation loss %f" %
                             tuple(np.mean(np.array(generator_loss_list), axis=0)))
