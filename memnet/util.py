@@ -32,8 +32,8 @@ def preprocess(img_batch, for_discriminator=False):
         # shift = (np.random.randint(0, img.shape[0] - IMAGE_SHAPE[0]),
         #          np.random.randint(0, img.shape[1] - IMAGE_SHAPE[1]))
         # img = img[shift[0]:(shift[0] + IMAGE_SHAPE[0]), shift[1]:(shift[1] + IMAGE_SHAPE[1])]
-        if for_discriminator:
-            img = colorize(img)
+        # if for_discriminator:
+        #     img = colorize(img)
         img = np.moveaxis(img, -1, 0)
         img = img[::-1, :, :] - MEAN_VALUES
         new_img_batch[i] = img

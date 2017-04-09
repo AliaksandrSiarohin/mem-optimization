@@ -51,13 +51,13 @@ def define_patch_net():
     net['conv_1'] = Conv2DLayer(net['patch'], num_filters=16, filter_size=(4, 4),
                                    nonlinearity=leaky_relu)
     print(lasagne.layers.get_output_shape(net['conv_1']))
-    net['conv_2'] = batch_norm(Conv2DLayer(net['conv_1'], num_filters=32, filter_size=(4, 4),
+    net['conv_2'] = batch_norm(Conv2DLayer(net['conv_1'], num_filters=32, filter_size=(4, 4), stride=(2, 2),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_2']))
-    net['conv_3'] = batch_norm(Conv2DLayer(net['conv_2'], num_filters=64, filter_size=(4, 4),  stride=(2, 2),
+    net['conv_3'] = batch_norm(Conv2DLayer(net['conv_2'], num_filters=64, filter_size=(4, 4),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_3']))
-    net['conv_4'] = batch_norm(Conv2DLayer(net['conv_3'], num_filters=128, filter_size=(4, 4),
+    net['conv_4'] = batch_norm(Conv2DLayer(net['conv_3'], num_filters=128, filter_size=(4, 4), stride=(2, 2),
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_4']))
     net['conv_5'] = batch_norm(Conv2DLayer(net['conv_4'], num_filters=256, filter_size=(4, 4),
@@ -68,15 +68,11 @@ def define_patch_net():
                                                  nonlinearity=leaky_relu))
     print(lasagne.layers.get_output_shape(net['conv_6']))
 
-    net['conv_7'] = batch_norm(Conv2DLayer(net['conv_6'], num_filters=512, filter_size=(4, 4),
+    net['conv_7'] = batch_norm(Conv2DLayer(net['conv_6'], num_filters=512, filter_size=(3, 3),
                                                  nonlinearity=leaky_relu))
 
     print (lasagne.layers.get_output_shape(net['conv_7']))
-    net['conv_8'] = batch_norm(Conv2DLayer(net['conv_7'], num_filters=512, filter_size=(4, 4), stride=(2, 2),
-                                                 nonlinearity=leaky_relu))
-
-    print (lasagne.layers.get_output_shape(net['conv_8']))
-    net['out'] = ll.DenseLayer(net['conv_5'], num_units=1, nonlinearity=lasagne.nonlinearities.sigmoid)
+    net['out'] = ll.DenseLayer(net['conv_7'], num_units=1, nonlinearity=lasagne.nonlinearities.sigmoid)
 
     print(lasagne.layers.get_output_shape(net['out']))
 

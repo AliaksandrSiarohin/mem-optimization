@@ -16,8 +16,8 @@ def parse_args():
                         help = "Experiment name, the folder with all network definitions")
     parser.add_argument("--input_folder", default='datasets/flowers',
                         help="Input images")
-    parser.add_argument("--output_folder", default='output-35-test-16', help='Output images')
-    parser.add_argument("--model", default='memnet/experiment-35/model/generator-16.npy', help="Path to generator weights")
+    parser.add_argument("--output_folder", default='output-39-test-46', help='Output images')
+    parser.add_argument("--model", default='memnet/experiment-39/model/generator-46.npy', help="Path to generator weights")
     parser.add_argument("--objective_model", default='memnet/internal_mem.npy', help='Path to objective model weights')
     parser.add_argument("--device", default='cpu', help='Which device to use')
 
