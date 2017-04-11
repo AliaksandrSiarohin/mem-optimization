@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument("--obj_coef", default=1, type=float, help="Weight of objective loss")
     parser.add_argument("--cont_coef", default=1.0, type=float, help="Weight of content loss")
     parser.add_argument("--disc_coef", default=10.0,  type=float, help="Weight of discriminator")
-    parser.add_argument("--disc_loss_mul", default=12.0,  type=float, help="Weight of discriminator")
+    parser.add_argument("--disc_loss_mul", default=50.0,  type=float, help="Weight of discriminator")
 
     parser.add_argument("--tv_coef", default=0.3 * 1e-5, type=float, help="Weight of total variation")
     parser.add_argument("--num_img_to_show", default=5, help="Number of image to show")

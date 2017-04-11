@@ -29,12 +29,11 @@ class Grid2DLayer(Layer):
         self.step = step
         self.patch_size = patch_size
 
-        y = np.arange(0, incoming_shape[0] - self.step[0], self.step[0])
-        x = np.arange(0, incoming_shape[1] - self.step[1], self.step[1])
+        y = np.arange(0, incoming_shape[0] - self.patch_size[0] + 1, self.step[0])
+        x = np.arange(0, incoming_shape[1] - self.patch_size[1] + 1, self.step[1])
         y, x = np.meshgrid(x, y)
         y = y.reshape((-1, ))
         x = x.reshape((-1, ))
-
 
         self.x = theano.shared(x, allow_downcast=True)
         self.y = theano.shared(y, allow_downcast=True)
@@ -133,19 +132,19 @@ def colorize(image):
 
 
 if __name__ == "__main__":
-
+    from skimage.transform import resize
     import pylab as plt
-    # X = T.tensor4(dtype='float32')
+    X = T.tensor4(dtype='float32')
     img = plt.imread('datasets/flowers/image_00001.jpg')
-    # img = np.expand_dims(np.moveaxis(img, -1, 0), 0)
-    # net = lasagne.layers.InputLayer((None, 3, None, None))
-    # net = ColorReweightLayer(net)#, 0, 256)
-    # fn = theano.function([X], lasagne.layers.get_output(net, inputs=X), allow_input_downcast=True)
-    # plt.imsave("kek.jpg", np.moveaxis(np.squeeze(fn(img)), 0, -1).astype('uint8'))
-    img = plt.imread('datasets/flowers/image_00001.jpg')
-    plt.imsave("kek.jpg", colorize(img))
-    plt.imsave("kek-1.jpg", colorize(img))
-    plt.imsave("kek-2.jpg", colorize(img))
+    img = np.expand_dims(np.moveaxis( resize(img, (256, 256)), -1, 0), 0)
+    net = lasagne.layers.InputLayer((None, 3, None, None))
+    net =  Grid2DLayer(net, (256, 256), (32, 32), (70, 70))
+    fn = theano.function([X], lasagne.layers.get_output(net, inputs=X), allow_input_downcast=True)
+    plt.imsave("kek.jpg", np.moveaxis(np.squeeze(fn(img)), 0, -1).astype('uint8'))
+    # img = plt.imread('datasets/flowers/image_00001.jpg')
+    # plt.imsave("kek.jpg", colorize(img))
+    # plt.imsave("kek-1.jpg", colorize(img))
+    # plt.imsave("kek-2.jpg", colorize(img))
     #plt.imsave("kek-1.jpg", colorize(img))
     # net = lasagne.layers.InputLayer((None, 1, 256, 256))
     # net = Grid2DLayer(net, (3, 3), (1, 1), (2, 2))
