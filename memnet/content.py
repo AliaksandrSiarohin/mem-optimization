@@ -1,7 +1,7 @@
 from lasagne.layers import InputLayer, DenseLayer, NonlinearityLayer
 from lasagne.layers.dnn import Conv2DDNNLayer as ConvLayer
 from lasagne.layers.dnn import Pool2DDNNLayer as PoolLayer
-
+import theano.tensor as T
 import lasagne
 import pickle
 from util import IMAGE_SHAPE
@@ -44,12 +44,17 @@ def rgb2gray(img):
 
 
 def define_loss(start_img, final_img, content_layer='conv3_1'):
-    net = define_net()
-    load_weights(net)
-    start_features = lasagne.layers.get_output(net[content_layer], start_img)
-    final_features = lasagne.layers.get_output(net[content_layer], final_img)
-    loss = ((start_features - final_features) ** 2).mean(axis = (1, 2, 3))
+    # net = define_net()
+    # load_weights(net)
+    # start_features = lasagne.layers.get_output(net[content_layer], start_img)
+    # final_features = lasagne.layers.get_output(net[content_layer], final_img)
+    # loss = ((start_features - final_features) ** 2).mean(axis = (1, 2, 3))
+    #return loss #+ loss_pixel * 0.5 * 1e-2
 
-    #loss = ((rgb2gray(start_img) - rgb2gray(final_img)) ** 2).mean(axis = (1, 2))
+    start_img /= 256
+    final_img /= 256
 
-    return loss #+ loss_pixel * 0.5 * 1e-2
+    loss_gray = ((rgb2gray(start_img) - rgb2gray(final_img)) ** 2).mean(axis = (1, 2))
+    loss_color = ((start_img - final_img) ** 2).mean(axis = (1, 2, 3))
+    return loss_gray# - 0.1 * loss_color
+
