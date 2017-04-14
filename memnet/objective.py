@@ -4,13 +4,14 @@ from lasagne.layers import InputLayer, Conv2DLayer
 from lasagne.layers import MaxPool2DLayer, LocalResponseNormalization2DLayer
 from lasagne.layers import SliceLayer, concat, DenseLayer
 import lasagne.nonlinearities
+from util import IMAGE_SHAPE
 import sample_layer
-IMAGE_W = 227
+#IMAGE_W = 227
 
 
 def define_net(input_var):
     net = {}
-    net['data'] = InputLayer(shape=(None, 3, IMAGE_W, IMAGE_W), input_var=input_var)
+    net['data'] = InputLayer(shape=(None, 3, IMAGE_SHAPE[0], IMAGE_SHAPE[1]), input_var=input_var)
 
     net['patch'] = sample_layer.Sample2DLayer(net['data'], 5, (227, 227), pad=False)
 
@@ -97,6 +98,7 @@ def define_net(input_var):
     # pool 5
     net['pool5'] = MaxPool2DLayer(net['conv5'], pool_size=(3, 3), stride=2)
 
+
     # fc6
     net['fc6'] = DenseLayer(
         net['pool5'], num_units=4096,
@@ -114,11 +116,34 @@ def define_net(input_var):
         num_units=1,
         nonlinearity=lasagne.nonlinearities.linear)
 
+
+    # print ('Objective layer shapes:')
+    # print (lasagne.layers.get_output_shape(net['pool5']))
+    # # fc6
+    # net['fc6'] = Conv2DLayer(
+    #     net['pool5'], num_filters=4096, filter_size=(6, 6),
+    #     nonlinearity=lasagne.nonlinearities.rectify, flip_filters=False)
+    # print (lasagne.layers.get_output_shape(net['fc6']))
+    # # fc7
+    # net['fc7'] = Conv2DLayer(
+    #     net['fc6'],
+    #     num_filters=4096, filter_size=(1, 1),
+    #     nonlinearity=lasagne.nonlinearities.rectify)
+    # print (lasagne.layers.get_output_shape(net['fc7']))
+    # # fc8
+    # net['out'] = Conv2DLayer(
+    #     net['fc7'],
+    #     num_filters=1, filter_size=(1, 1),
+    #     nonlinearity=lasagne.nonlinearities.linear)
+    # print (lasagne.layers.get_output_shape(net['out']))
     return net
 
 
 def load_weights(net, file_name):
     weights = np.load(file_name, encoding='latin1')
+    # weights[-2] = weights[-2].T.reshape((1, 4096, 1, 1))
+    # weights[-4] = weights[-4].T.reshape((4096, 4096, 1, 1))
+    # weights[-6] = weights[-6].T.reshape((4096, 256, 6, 6))
     lasagne.layers.set_all_param_values(net['out'], weights)
 
 

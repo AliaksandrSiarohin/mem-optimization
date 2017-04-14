@@ -19,6 +19,9 @@ def define_net():
 
     leaky_relu = lasagne.nonlinearities.LeakyRectify(0.2)
 
+    # net['stand'] = ll.standardize(net['input'], offset=np.array([0, 0, 0], dtype='float32'),
+    #                             scale=np.array([128.0, 128.0, 128.0], dtype='float32'))
+
     net['conv_1'] = Conv2DLayer(net['input'], num_filters=64, stride=(2, 2), filter_size=(4, 4),
                                                  nonlinearity=leaky_relu)
     print(lasagne.layers.get_output_shape(net['conv_1']))

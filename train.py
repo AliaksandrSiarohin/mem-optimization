@@ -21,17 +21,25 @@ def parse_args():
     parser.add_argument("--obj_coef", default=1, type=float, help="Weight of objective loss")
     parser.add_argument("--cont_coef", default=1.0, type=float, help="Weight of content loss")
     parser.add_argument("--disc_coef", default=10.0,  type=float, help="Weight of discriminator")
-    parser.add_argument("--disc_loss_mul", default=50.0,  type=float, help="Weight of discriminator")
+    parser.add_argument("--disc_loss_mul", default=10.0,  type=float, help="Weight of discriminator")
 
-    parser.add_argument("--tv_coef", default=0.3 * 1e-5, type=float, help="Weight of total variation")
+    parser.add_argument("--tv_coef", default=3 * 1e-5, type=float, help="Weight of total variation")
     parser.add_argument("--num_img_to_show", default=5, help="Number of image to show")
     parser.add_argument("--experiment_folder", default='memnet/experiment-26',
                         help='Folder for saving plots and netowkrs in each iteration')
-    parser.add_argument("--save_mode_it", default=1, help='Save model per this number of epoch')
+    parser.add_argument("--save_mode_it", default=5, help='Save model per this number of epoch')
     parser.add_argument("--device", default='gpu0', help='Which device to use')
     parser.add_argument("--dataset", default='datasets/nature-small', help='Folder with images for training')
     parser.add_argument("--cont_layer", default="conv3_1",
                         help='Take content features from this layer (input) for pixels')
+
+    parser.add_argument("--num_layers_in_disc", default=4, type=int,
+                        help="Number of layers in discriminator (1,2,3,4)")
+
+    parser.add_argument("--learning_rate", default=0.001, type=float,
+                        help='Learning rate')
+
+    parser.add_argument("--loss_type_disc", default='log', help='Type of the loss function in discriminator (log, sqr)')
 
     return parser.parse_args()
 
@@ -49,15 +57,17 @@ def compile(options):
     input_to_generator = T.tensor4('img_with_noise', dtype='float32')
     input_to_content = T.tensor4('input_img', dtype='float32')
     input_to_discriminator = T.tensor4('true_img', dtype='float32')
-    lr = theano.shared(np.array(0.001, dtype='float32'))
+    lr = theano.shared(np.array(options.learning_rate, dtype='float32'))
     obj_coef = theano.shared(np.array(options.obj_coef, dtype='float32'))
 
     G = generator.define_net()
+    D = discriminator.define_patch_net(options.num_layers_in_disc)
     generated_img = lasagne.layers.get_output(G['out'], inputs=input_to_generator)
 
     objective_loss = obj_coef * objective.define_loss(generated_img).mean()
     content_loss = options.cont_coef * content.define_loss(input_to_content, generated_img, options.cont_layer).mean()
-    disc_loss = options.disc_coef * discriminator.define_loss_generator(generated_img).mean()
+    disc_loss = options.disc_coef * discriminator.define_loss_generator(D, generated_img,
+                                                input_to_discriminator, options.loss_type_disc).mean()
     tv_loss = options.tv_coef * total_variation_loss(generated_img)
 
     G_loss = (objective_loss +
@@ -65,18 +75,17 @@ def compile(options):
               disc_loss +
               tv_loss)
 
+    D_params = lasagne.layers.get_all_params(D['out'], trainable=True)
+    D_loss = options.disc_loss_mul *\
+             discriminator.define_loss_discriminator(D, generated_img, input_to_discriminator, options.loss_type_disc)
 
-    D_params = discriminator.discriminator_params()
-    patch_loss = discriminator.single_discriminator_loss(discriminator.patch_net, generated_img, input_to_discriminator)
-
-    D_loss = options.disc_loss_mul * patch_loss
     D_updates = lasagne.updates.adam(D_loss, D_params, learning_rate=lr)
     D_train_fn = theano.function([generated_img, input_to_discriminator], [D_loss],
                                  updates=D_updates, allow_input_downcast=True)
 
     G_params = lasagne.layers.get_all_params(G['out'], trainable=True)
     G_updates = lasagne.updates.adam(G_loss, G_params, learning_rate=lr)
-    G_train_fn = theano.function([input_to_generator, input_to_content],
+    G_train_fn = theano.function([input_to_generator, input_to_content, input_to_discriminator],
                                  [generated_img, G_loss, objective_loss, content_loss, disc_loss, tv_loss],
                                  updates=G_updates, allow_input_downcast=True)
     generate_fn = theano.function([input_to_generator], generated_img, allow_input_downcast=True)
@@ -133,6 +142,9 @@ def train(options):
     X, _ = util.load_dataset(options.dataset, True)
     print ("Training...")
     log_file = open(os.path.join(options.experiment_folder, 'log.txt'), 'w')
+    log_str = ("Experiment params: %s" % (options.__dict__, ))
+    print(log_str)
+    print(log_str, file=log_file)
     buffer = ExperienceBuffer(buffer_size=100, batch_shape=(options.batch_size, 3, 256, 256))
     for epoch in range(options.num_iter):
         # if (epoch + 1) % 20 == 0:
@@ -158,7 +170,7 @@ def train(options):
             generator_batch_with_noise = util.add_noise(generator_batch)
 
             #print (generate_fn(generator_batch_with_noise))
-            generator_output = G_train_fn(generator_batch_with_noise, generator_batch)
+            generator_output = G_train_fn(generator_batch_with_noise, generator_batch, discriminator_batch)
             generated_batch, generator_loss = generator_output[0], generator_output[1:]
             #buffer.push_to_buffer(generator_batch)
 
@@ -166,14 +178,14 @@ def train(options):
 
             discriminator_loss_list.append(discriminator_loss)
             generator_loss_list.append(generator_loss)
-            #
-            # log_str = (("Epoch %i" % epoch) + '\n'
-            #         + ("Discriminator loss %f" %
-            #                 tuple(np.mean(np.array(discriminator_loss_list), axis=0))) + '\n'
-            #         + ("Generator loss %f, obj_loss %f, cont_loss %f, disc_loss %f, total_variation loss %f" %
-            #                 tuple(np.mean(np.array(generator_loss_list), axis=0)))
-            #        )
-            # print(log_str)
+
+            log_str = (("Epoch %i" % epoch) + '\n'
+                    + ("Discriminator loss %f" %
+                            tuple(np.mean(np.array(discriminator_loss_list), axis=0))) + '\n'
+                    + ("Generator loss %f, obj_loss %f, cont_loss %f, disc_loss %f, total_variation loss %f" %
+                            tuple(np.mean(np.array(generator_loss_list), axis=0)))
+                   )
+            print(log_str)
 
         img_for_ploting = util.preprocess(X[0:options.num_img_to_show])
         plot(options, epoch, img_for_ploting, generate_fn(util.add_noise(img_for_ploting)))

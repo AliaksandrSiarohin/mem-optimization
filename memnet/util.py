@@ -54,7 +54,7 @@ def load_dataset(directory='datasets/flowers', is_train=True):
         img = io.imread(os.path.join(directory, name))
         if len(img.shape) == 2:
             img = color.gray2rgb(img)
-        X.append(img_as_ubyte(transform.resize(img, (256, 256))))
+        X.append(img_as_ubyte(transform.resize(img, IMAGE_SHAPE)))
     X_train, X_test, names_train, names_test = train_test_split(X, names, train_size=0.8, random_state=0)
     return (np.array(X_train), names_train) if is_train else (np.array(X_test), names_test)
 
